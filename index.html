@@ -302,6 +302,33 @@ body {
 .rebus-feedback.success { color:var(--mint); }
 .rebus-feedback.error { color:#ff6b6b; }
 
+/* === COUNTER === */
+.counter-block {
+  margin:12px 0; padding:16px;
+  background:var(--gold-dim); border:1px solid rgba(240,192,80,0.25);
+  border-radius:12px; text-align:center;
+}
+.counter-label {
+  font-size:0.7rem; text-transform:uppercase; letter-spacing:0.1em;
+  color:var(--gold); font-weight:600; margin-bottom:10px;
+}
+.counter-row {
+  display:flex; align-items:center; justify-content:center; gap:20px;
+}
+.counter-btn {
+  width:52px; height:52px; border-radius:50%;
+  border:1px solid var(--pink); background:var(--pink-glow);
+  color:var(--pink); font-size:1.6rem; line-height:1; cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.counter-btn:active { transform:scale(0.92); }
+.counter-btn:disabled { opacity:0.3; cursor:default; }
+.counter-value {
+  font-family:Georgia,serif; font-size:2.6rem;
+  color:var(--gold); min-width:2ch;
+}
+.counter-sum { margin-top:10px; font-size:0.78rem; color:var(--text-dim); }
+
 /* === VIDEO === */
 .video-block { margin:12px 0; text-align:center; }
 .video-btn {
@@ -484,7 +511,7 @@ const STAGES = [
     subtitle:"К 25 школе",
     story:"Шлёпаем, угараем по набережной в сторону <strong>25 школы</strong>, где ты училась. Тут 100% была твоя первая любовь.",
     task:"Групповое селфи на набережной! В школе ты отлично училась — докажи это: обыграй нас в дурака, или пей три стопки!",
-    type:"simple", stars:1
+    type:"simple", stars:2
   },
   {
     emoji:"🧥", name:"Двор КМЛ",
@@ -498,14 +525,14 @@ const STAGES = [
     subtitle:"Шпагат-челлендж",
     story:"У тебя есть фото на шпагате в самых неожиданных местах — в бане на Юшкова, с незнакомыми девушками...",
     task:"Вспомни вслух все места, где ты садилась на шпагат! За каждое место — зманета. А если повторишь шпагат прямо сейчас — сможешь обналичить их все!",
-    type:"simple", stars:1
+    type:"counter", stars:1, counterMax:10
   },
   {
     emoji:"🎤", name:"Караоке 777",
     subtitle:"Пой или пей",
     story:"Однажды после закрытия Северного Флота вы с Карась осознали себя <strong>поющими в караоке с какими-то двумя типами Меладзе в 8 утра</strong>. В тот же вечер у Карась увели твиттер.",
     task:"Спой «Невесту» Мумий Тролля на камеру! Потом разгадайте кроссворд, чтобы узнать следующую точку.",
-    type:"video", stars:1,
+    type:"video", stars:2,
     video:"karaoke.mp4", videoLabel:"Караоке · Мумий Тролль — Невеста",
     link:{ url:"devichnik_crossword/crossword.html", label:"Открыть кроссворд 🧩" }
   },
@@ -528,7 +555,7 @@ const STAGES = [
     subtitle:"Легенда",
     story:"РЖАВЫЙ ДЕД ГОСПОДИ. Бар с характером.",
     task:"Каждая подружка рассказывает самую безумную историю с тобой. Ты выбираешь победительницу. Проигравшие пьют!",
-    type:"simple", stars:1
+    type:"simple", stars:2
   },
   {
     emoji:"🥃", name:"Бутлегер",
@@ -542,14 +569,14 @@ const STAGES = [
     subtitle:"Все по местам!",
     story:"Легендарный бар. Ты поставила огонёк. Это место — обязательная программа.",
     task:"Надеваем тельняшки! Водка за моряков! Каждая говорит тост в морском стиле. Самый креативный побеждает.",
-    type:"simple", stars:1
+    type:"simple", stars:2
   },
   {
     emoji:"💚", name:"Здоровье",
     subtitle:"Где всё началось",
     story:"С Ильёй вы уже были знакомы, но именно <strong>здесь всё началось по-настоящему</strong>. Круг замкнулся. Из бара «Здоровье» начинается новая глава.",
     task:"Финальный тост за любовь, за дружбу и за новую жизнь! Каждая подружка говорит тебе одно пожелание.",
-    type:"final", stars:1
+    type:"final", stars:2
   }
 ];
 
@@ -573,14 +600,20 @@ function zmanetWord(n) { return plural(n,'зманет','зманета','зма
 
 let state = {
   current:0, completed:[], stars:0,
-  quizAnswers:{}, rebusGuessed:false, rebusRevealed:false,
+  quizAnswers:{}, rebusGuessed:false, rebusRevealed:false, splitCount:0,
   purchases:{}
 };
 
 function loadState() {
-  try { const s=localStorage.getItem('tquest_v4'); if(s) state=JSON.parse(s); } catch(e) {}
+  // Сохранения с прошлых версий могут не знать новых полей — дополняем значениями по умолчанию
+  try {
+    const s=localStorage.getItem('tquest_v4');
+    if(s) state=Object.assign({}, state, JSON.parse(s));
+  } catch(e) {}
 }
-function saveState() { localStorage.setItem('tquest_v4', JSON.stringify(state)); }
+function saveState() {
+  try { localStorage.setItem('tquest_v4', JSON.stringify(state)); } catch(e) {}
+}
 
 function updateHeader() {
   const pct=(state.completed.length/STAGES.length)*100;
@@ -642,6 +675,7 @@ function getEarnedStars(s,i) {
   if(s.type==='rebus' && s.bonusStars && state.rebusGuessed) {
     earned+=s.bonusStars;
   }
+  if(s.type==='counter') earned+=state.splitCount;
   return earned;
 }
 
@@ -650,6 +684,7 @@ function renderTask(s,i) {
   if(s.type==='quiz') extra=renderQuiz(s.quiz,i);
   else if(s.type==='rebus') extra=renderRebus();
   else if(s.type==='video') extra=renderVideo(s);
+  else if(s.type==='counter') extra=renderCounter(s,i);
   else if(s.type==='ilya') extra=renderIlya(s.questions);
   if(s.link) extra+=`<a class="link-btn" href="${s.link.url}" target="_blank" rel="noopener">${s.link.label}</a>`;
   return `<div class="task-block">
@@ -716,6 +751,28 @@ function revealRebus() {
   renderStages();
 }
 
+function renderCounter(s,i) {
+  const n=state.splitCount, max=s.counterMax||10;
+  const locked=state.completed.includes(i);
+  return `<div class="counter-block">
+    <div class="counter-label">Названо мест</div>
+    <div class="counter-row">
+      <button class="counter-btn" ${locked||n<=0?'disabled':''} onclick="bumpCount(-1,${max})">−</button>
+      <div class="counter-value">${n}</div>
+      <button class="counter-btn" ${locked||n>=max?'disabled':''} onclick="bumpCount(1,${max})">+</button>
+    </div>
+    <div class="counter-sum">${n?'+'+n+' '+zmanetWord(n)+' к награде':'Жми плюс за каждое место'}</div>
+  </div>`;
+}
+
+function bumpCount(d,max) {
+  const n=state.splitCount+d;
+  if(n<0||n>max) return;
+  state.splitCount=n;
+  saveState();
+  renderStages();
+}
+
 function renderVideo(s) {
   return `<div class="video-block">
     <button class="video-btn" onclick="playVideo(this,'${s.video}')">▶ Включить караоке 🎤</button>
@@ -763,6 +820,7 @@ function completeStage(i) {
     bonus=s.quiz.filter((_,qi)=>state.quizAnswers[i+'-'+qi]===s.quiz[qi].correct).length;
   }
   if(s.type==='rebus'&&s.bonusStars&&state.rebusGuessed) bonus=s.bonusStars;
+  if(s.type==='counter') bonus=state.splitCount;
 
   const totalEarned=earned+bonus;
   state.stars+=totalEarned;
@@ -908,7 +966,7 @@ window.addEventListener('scroll',()=>{
 
 function resetProgress() {
   if(confirm('Сбросить весь прогресс и начать квест заново?')){
-    state={current:0,completed:[],stars:0,quizAnswers:{},rebusGuessed:false,rebusRevealed:false,purchases:{}};
+    state={current:0,completed:[],stars:0,quizAnswers:{},rebusGuessed:false,rebusRevealed:false,splitCount:0,purchases:{}};
     saveState();
     renderStages();
     showQuest();
