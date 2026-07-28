@@ -33,7 +33,7 @@ const html = `<!DOCTYPE html>
 }
 
 * { margin:0; padding:0; box-sizing:border-box; }
-html { font-size:16px; -webkit-text-size-adjust:100%; }
+html { font-size:16px; -webkit-text-size-adjust:100%; overflow-x:hidden; }
 
 body {
   font-family: system-ui, -apple-system, sans-serif;
@@ -305,6 +305,23 @@ body {
 .rebus-feedback.success { color:var(--mint); }
 .rebus-feedback.error { color:#ff6b6b; }
 
+/* === QUEST MARKER === */
+.quest-marker {
+  position:absolute; right:10px; top:0;
+  width:72px; height:auto; z-index:5;
+  pointer-events:none; opacity:0;
+  transform:rotate(9deg);
+  filter:drop-shadow(0 4px 10px rgba(0,0,0,0.35));
+  transition:top 0.7s cubic-bezier(0.34,1.2,0.64,1), opacity 0.4s ease;
+}
+.quest-marker.show { opacity:1; }
+.quest-marker.hop { animation:markerHop 0.7s ease; }
+@keyframes markerHop {
+  0%   { transform:rotate(9deg) scale(1); }
+  40%  { transform:rotate(-6deg) scale(1.18); }
+  100% { transform:rotate(9deg) scale(1); }
+}
+
 /* === COUNTER === */
 .counter-block {
   margin:12px 0; padding:16px;
@@ -464,6 +481,7 @@ body {
 <div class="view active" id="questView">
   <div class="quest-container">
     <div class="timeline-line"></div>
+    <img class="quest-marker" id="questMarker" src="sticker.webp" alt="">
     <div id="stages"></div>
   </div>
 </div>
@@ -666,7 +684,31 @@ function renderStages() {
     c.appendChild(div);
   });
   updateHeader();
+  updateMarker();
 }
+
+// Стикер «наклеен» на текущую карточку и перепрыгивает на следующую по мере прохождения
+let markerStage=null;
+function updateMarker(animate) {
+  const m=document.getElementById('questMarker');
+  if(!m) return;
+  const target=document.getElementById('stage-'+state.current);
+  if(!target) { m.classList.remove('show'); return; }
+
+  const top=target.offsetTop+14;
+  const moved=markerStage!==null && markerStage!==state.current;
+  m.style.top=top+'px';
+  m.classList.add('show');
+
+  if(moved||animate) {
+    m.classList.remove('hop');
+    void m.offsetWidth; // перезапуск анимации
+    m.classList.add('hop');
+  }
+  markerStage=state.current;
+}
+
+window.addEventListener('resize',()=>updateMarker(false));
 
 function getEarnedStars(s,i) {
   if(!state.completed.includes(i)) return 0;
