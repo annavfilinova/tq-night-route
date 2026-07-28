@@ -1,4 +1,4 @@
-const CACHE = 'tquest-v2';
+const CACHE = 'tquest-v3';
 const ASSETS = [
   './',
   './index.html',
