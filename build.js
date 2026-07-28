@@ -316,6 +316,15 @@ body {
 }
 .video-btn:active { transform:scale(0.98); }
 .video-label { margin-top:8px; font-size:0.75rem; color:var(--text-dim); font-style:italic; }
+.link-btn {
+  display:block; margin-top:12px; padding:14px;
+  border:1px solid var(--gold); border-radius:12px;
+  background:var(--gold-dim); color:var(--gold);
+  font-size:0.95rem; font-weight:600; text-align:center;
+  text-decoration:none; min-height:48px;
+  -webkit-tap-highlight-color:transparent;
+}
+.link-btn:active { transform:scale(0.98); }
 .video-player {
   width:100%; max-height:60vh; border-radius:12px;
   background:#000; display:block;
@@ -500,7 +509,8 @@ const STAGES = [
     story:"Однажды после закрытия Северного Флота вы с Карась осознали себя <strong>поющими в караоке с какими-то двумя типами Меладзе в 8 утра</strong>. В тот же вечер у Карась увели твиттер.",
     task:"Спой «Невесту» Мумий Тролля на камеру! Потом разгадайте кроссворд, чтобы узнать следующую точку.",
     type:"video", stars:1,
-    video:"karaoke.mp4", videoLabel:"Караоке · Мумий Тролль — Невеста"
+    video:"karaoke.mp4", videoLabel:"Караоке · Мумий Тролль — Невеста",
+    link:{ url:"devichnik_crossword/crossword.html", label:"Открыть кроссворд 🧩" }
   },
   {
     emoji:"🔥", name:"Плаха",
@@ -644,6 +654,7 @@ function renderTask(s,i) {
   else if(s.type==='rebus') extra=renderRebus();
   else if(s.type==='video') extra=renderVideo(s);
   else if(s.type==='ilya') extra=renderIlya(s.questions);
+  if(s.link) extra+=\`<a class="link-btn" href="\${s.link.url}" target="_blank" rel="noopener">\${s.link.label}</a>\`;
   return \`<div class="task-block">
     <div class="task-label">Задание</div>
     <div class="task-text">\${s.task}</div>
