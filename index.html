@@ -302,6 +302,22 @@ body {
 .rebus-feedback.success { color:var(--mint); }
 .rebus-feedback.error { color:#ff6b6b; }
 
+/* === VIDEO === */
+.video-block { margin:12px 0; text-align:center; }
+.video-btn {
+  display:block; width:100%; padding:14px;
+  border:1px solid var(--pink); border-radius:12px;
+  background:var(--pink-glow); color:var(--pink);
+  font-size:0.95rem; font-weight:600; cursor:pointer;
+  min-height:48px; -webkit-tap-highlight-color:transparent;
+}
+.video-btn:active { transform:scale(0.98); }
+.video-label { margin-top:8px; font-size:0.75rem; color:var(--text-dim); font-style:italic; }
+.video-player {
+  width:100%; max-height:60vh; border-radius:12px;
+  background:#000; display:block;
+}
+
 /* === ILYA QUIZ === */
 .ilya-q {
   background:var(--surface-hover); border-radius:10px;
@@ -480,7 +496,8 @@ const STAGES = [
     subtitle:"Пой или пей",
     story:"Однажды после закрытия Северного Флота вы с Карась осознали себя <strong>поющими в караоке с какими-то двумя типами Меладзе в 8 утра</strong>. В тот же вечер у Карась увели твиттер.",
     task:"Спой «Невесту» Мумий Тролля на камеру! Потом разгадайте кроссворд, чтобы узнать следующую точку.",
-    type:"simple", stars:1
+    type:"video", stars:1,
+    video:"karaoke.mp4", videoLabel:"Караоке · Мумий Тролль — Невеста"
   },
   {
     emoji:"🔥", name:"Плаха",
@@ -622,6 +639,7 @@ function renderTask(s,i) {
   let extra='';
   if(s.type==='quiz') extra=renderQuiz(s.quiz,i);
   else if(s.type==='rebus') extra=renderRebus();
+  else if(s.type==='video') extra=renderVideo(s);
   else if(s.type==='ilya') extra=renderIlya(s.questions);
   return `<div class="task-block">
     <div class="task-label">Задание</div>
@@ -685,6 +703,18 @@ function revealRebus() {
   state.rebusRevealed=true;
   saveState();
   renderStages();
+}
+
+function renderVideo(s) {
+  return `<div class="video-block">
+    <button class="video-btn" onclick="playVideo(this,'${s.video}')">▶ Включить караоке 🎤</button>
+    <div class="video-label">${s.videoLabel||''}</div>
+  </div>`;
+}
+
+function playVideo(btn, src) {
+  const box=btn.parentElement;
+  box.innerHTML='<video class="video-player" src="'+src+'" controls autoplay playsinline></video>';
 }
 
 function checkRebus() {

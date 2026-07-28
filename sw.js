@@ -1,10 +1,11 @@
-const CACHE = 'tquest-v1';
+const CACHE = 'tquest-v2';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './icon-180.png',
   './icon-512.png',
+  './karaoke.mp4',
   './devichnik_crossword/crossword.html'
 ];
 
