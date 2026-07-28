@@ -941,6 +941,8 @@ function completeStage(i) {
   state.current=Math.min(i+1,STAGES.length-1);
 
   saveState();
+  // На финале звучит отдельный трек, поэтому обычный не запускаем
+  if(i!==STAGES.length-1) playSound('done');
   showReward(s, totalEarned, i);
 }
 
@@ -959,6 +961,7 @@ function closeReward() {
   const i=state.completed[state.completed.length-1];
 
   if(i===STAGES.length-1) {
+    playSound('finale');
     setTimeout(()=>{ document.getElementById('surprise').classList.add('show'); launchConfetti(); }, 400);
   }
 
@@ -1024,6 +1027,7 @@ function buyItem(id) {
   if(item.minCompleted!==undefined && state.completed.length<item.minCompleted) return;
   if(state.stars<item.cost) return;
   state.stars-=item.cost;
+  playSound('buy');
   state.purchases[id]=(state.purchases[id]||0)+1;
   saveState();
   updateHeader();
@@ -1097,7 +1101,38 @@ document.querySelector('.header h1').addEventListener('click',()=>{
   setTimeout(()=>headerTaps=0,3000);
 });
 
+// Звуки лежат в WAV: Safari на айфоне не играет ogg
+const SOUNDS = { buy:'sound/1.wav', done:'sound/2.wav', finale:'sound/3.wav' };
+const audioCache = {};
+
+function playSound(key) {
+  const src=SOUNDS[key];
+  if(!src) return;
+  try {
+    let a=audioCache[key];
+    if(!a) { a=new Audio(src); a.preload='auto'; audioCache[key]=a; }
+    a.currentTime=0;
+    const p=a.play();
+    if(p&&p.catch) p.catch(()=>{});
+  } catch(e) {}
+}
+
+// Айфон разрешает звук только после касания, поэтому прогоняем каждый трек
+// беззвучно прямо в обработчике кнопки «Старт» — дальше они играют свободно
+function unlockAudio() {
+  Object.keys(SOUNDS).forEach(k=>{
+    let a=audioCache[k];
+    if(!a) { a=new Audio(SOUNDS[k]); a.preload='auto'; audioCache[k]=a; }
+    a.muted=true;
+    const p=a.play();
+    const settle=()=>{ a.pause(); a.currentTime=0; a.muted=false; };
+    if(p&&p.then) p.then(settle).catch(()=>{ a.muted=false; });
+    else settle();
+  });
+}
+
 function startQuest() {
+  unlockAudio();
   state.started=true;
   saveState();
   const intro=document.getElementById('intro');

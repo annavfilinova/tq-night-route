@@ -1,4 +1,4 @@
-const CACHE = 'tquest-v12';
+const CACHE = 'tquest-v14';
 const ASSETS = [
   './',
   './index.html',
@@ -8,6 +8,9 @@ const ASSETS = [
   './karaoke.mp4',
   './sticker.webp',
   './intro.mp4',
+  './sound/1.wav',
+  './sound/2.wav',
+  './sound/3.wav',
   './devichnik_crossword/crossword.html'
 ];
 
