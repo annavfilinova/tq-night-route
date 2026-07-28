@@ -305,6 +305,56 @@ body {
 .rebus-feedback.success { color:var(--mint); }
 .rebus-feedback.error { color:#ff6b6b; }
 
+/* === INTRO === */
+.intro {
+  position:fixed; inset:0; z-index:300;
+  display:flex; align-items:center; justify-content:center;
+  background:#0d0b14; overflow:hidden;
+}
+.intro.hide { display:none; }
+.intro-video {
+  position:absolute; inset:0;
+  width:100%; height:100%; object-fit:cover;
+  z-index:0;
+}
+.intro-shade {
+  position:absolute; inset:0; z-index:1;
+  background:linear-gradient(180deg, rgba(13,11,20,0.55) 0%, rgba(13,11,20,0.8) 55%, rgba(13,11,20,0.95) 100%);
+}
+.intro-content {
+  position:relative; z-index:2;
+  width:100%; max-width:420px;
+  padding:32px 26px; text-align:center;
+  max-height:100dvh; overflow-y:auto;
+}
+.intro-eyebrow {
+  font-size:0.68rem; letter-spacing:0.22em; text-transform:uppercase;
+  color:#f0c050; margin-bottom:8px;
+}
+.intro-title {
+  font-family:Georgia,serif; font-weight:400;
+  font-size:2rem; color:#ff5c8a; margin-bottom:22px;
+  text-shadow:0 2px 20px rgba(0,0,0,0.6);
+}
+.intro-rules { margin-bottom:26px; }
+.intro-rules p {
+  color:#f2ebe0; font-size:0.95rem; line-height:1.5;
+  margin-bottom:12px; text-shadow:0 1px 8px rgba(0,0,0,0.7);
+}
+.intro-rules .intro-note {
+  font-size:0.82rem; color:#c9bcd8; font-style:italic; margin-top:18px;
+}
+.intro-btn {
+  display:block; width:100%; padding:18px;
+  border:none; border-radius:14px;
+  background:#ff5c8a; color:#fff;
+  font-size:1.2rem; font-weight:700; letter-spacing:0.06em;
+  cursor:pointer; min-height:56px;
+  box-shadow:0 6px 30px rgba(255,92,138,0.45);
+  -webkit-tap-highlight-color:transparent;
+}
+.intro-btn:active { transform:scale(0.97); }
+
 /* === QUEST MARKER === */
 .quest-marker {
   position:absolute; right:10px; top:0;
@@ -460,6 +510,23 @@ body {
 </style>
 </head>
 <body>
+
+<div class="intro" id="intro">
+  <video class="intro-video" id="introVideo" src="intro.mp4" muted loop playsinline autoplay preload="auto"></video>
+  <div class="intro-shade"></div>
+  <div class="intro-content">
+    <div class="intro-eyebrow">Ночь перед свадьбой</div>
+    <h1 class="intro-title">Квест Тимошиной</h1>
+    <div class="intro-rules">
+      <p>Впереди 11 точек по местам твоей молодости.</p>
+      <p>На каждой ждёт задание. Справилась, получаешь зманеты.</p>
+      <p>Зманеты трать в магазине: такси, лёд на лоб, стопка, перекус, чужой секрет.</p>
+      <p>Похмельная корзина откроется ближе к финалу.</p>
+      <p class="intro-note">Прогресс сохраняется сам, телефон можно закрывать.</p>
+    </div>
+    <button class="intro-btn" onclick="startQuest()">Старт</button>
+  </div>
+</div>
 
 <div class="header">
   <div class="header-top">
@@ -621,6 +688,7 @@ function zmanetWord(n) { return plural(n,'зманет','зманета','зма
 
 let state = {
   current:0, completed:[], stars:0,
+  started:false,
   quizAnswers:{}, rebusGuessed:false, rebusRevealed:false, splitCount:0,
   purchases:{}
 };
@@ -1011,10 +1079,11 @@ window.addEventListener('scroll',()=>{
 
 function resetProgress() {
   if(confirm('Сбросить весь прогресс и начать квест заново?')){
-    state={current:0,completed:[],stars:0,quizAnswers:{},rebusGuessed:false,rebusRevealed:false,splitCount:0,purchases:{}};
+    state={current:0,completed:[],stars:0,started:false,quizAnswers:{},rebusGuessed:false,rebusRevealed:false,splitCount:0,purchases:{}};
     saveState();
     renderStages();
     showQuest();
+    location.reload();
   }
 }
 
@@ -1028,8 +1097,40 @@ document.querySelector('.header h1').addEventListener('click',()=>{
   setTimeout(()=>headerTaps=0,3000);
 });
 
+function startQuest() {
+  state.started=true;
+  saveState();
+  const intro=document.getElementById('intro');
+  intro.classList.add('hide');
+  const v=document.getElementById('introVideo');
+  if(v) { v.pause(); v.removeAttribute('src'); v.load(); }
+  updateMarker(true);
+  setTimeout(scrollToActive,200);
+}
+
+function setupIntro() {
+  const intro=document.getElementById('intro');
+  const v=document.getElementById('introVideo');
+  if(state.started) {
+    intro.classList.add('hide');
+    // Скрытый видеоэлемент всё равно проигрывается и жрёт батарею — выгружаем
+    if(v) { v.pause(); v.removeAttribute('autoplay'); v.removeAttribute('src'); v.load(); }
+    return;
+  }
+  if(!v) return;
+  // Замедляем ролик; браузер сбрасывает скорость при каждой загрузке источника
+  const slow=()=>{ v.playbackRate=0.5; };
+  v.addEventListener('loadedmetadata',slow);
+  v.addEventListener('play',slow);
+  slow();
+  const tryPlay=()=>v.play().catch(()=>{});
+  tryPlay();
+  document.addEventListener('touchstart',tryPlay,{once:true});
+}
+
 loadState();
 renderStages();
+setupIntro();
 setTimeout(scrollToActive,500);
 
 if('serviceWorker' in navigator) {
