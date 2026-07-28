@@ -992,6 +992,15 @@ setTimeout(scrollToActive,500);
 
 if('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+  // Страница отдаётся из памяти телефона, поэтому свежая версия доезжает только
+  // со второго открытия. Как только новый воркер взял управление — перезагружаемся сами.
+  let reloading=false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{
+    if(reloading) return;
+    reloading=true;
+    location.reload();
+  });
 }
 </script>
 </body>
