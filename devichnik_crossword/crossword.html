@@ -1,0 +1,769 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<meta name="referrer" content="no-referrer">
+<title>Кроссворд для девичника</title>
+<style>
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c0f18;
+      --bg-2: #241320;
+      --surface: #2c1723;
+      --ink: #f7e9f0;
+      --ink-soft: #cba8bb;
+      --accent: #ff6f91;
+      --accent-ink: #2c0f1a;
+      --gold: #e8c766;
+      --success: #8fbb78;
+      --error: #ff8674;
+      --grid-line: #4a2c3a;
+      --cell-bg: #3a1e2c;
+      --cell-bg-active-word: #55283f;
+      --cell-bg-active: #ff6f91;
+      --cell-ink-active: #2c0f1a;
+      --shadow: 0 20px 60px rgba(0,0,0,.5);
+    }
+  }
+  :root {
+    --bg: #fbf1ea;
+    --bg-2: #f6e6da;
+    --surface: #fffaf5;
+    --ink: #33202c;
+    --ink-soft: #7a5d6a;
+    --accent: #b21f52;
+    --accent-ink: #fff5f8;
+    --gold: #b1861f;
+    --success: #5f7d4f;
+    --error: #c14b3a;
+    --grid-line: #e6d2c3;
+    --cell-bg: #ffffff;
+    --cell-bg-active-word: #f6d9e4;
+    --cell-bg-active: #b21f52;
+    --cell-ink-active: #fff5f8;
+    --shadow: 0 20px 50px rgba(89, 42, 62, .16);
+  }
+  :root[data-theme="dark"] {
+    --bg: #1c0f18; --bg-2: #241320; --surface: #2c1723; --ink: #f7e9f0; --ink-soft: #cba8bb;
+    --accent: #ff6f91; --accent-ink: #2c0f1a; --gold: #e8c766; --success: #8fbb78; --error: #ff8674;
+    --grid-line: #4a2c3a; --cell-bg: #3a1e2c; --cell-bg-active-word: #55283f; --cell-bg-active: #ff6f91;
+    --cell-ink-active: #2c0f1a; --shadow: 0 20px 60px rgba(0,0,0,.5);
+  }
+  :root[data-theme="light"] {
+    --bg: #fbf1ea; --bg-2: #f6e6da; --surface: #fffaf5; --ink: #33202c; --ink-soft: #7a5d6a;
+    --accent: #b21f52; --accent-ink: #fff5f8; --gold: #b1861f; --success: #5f7d4f; --error: #c14b3a;
+    --grid-line: #e6d2c3; --cell-bg: #ffffff; --cell-bg-active-word: #f6d9e4; --cell-bg-active: #b21f52;
+    --cell-ink-active: #fff5f8; --shadow: 0 20px 50px rgba(89, 42, 62, .16);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background:
+      radial-gradient(1200px 500px at 20% -10%, var(--bg-2), transparent 60%),
+      radial-gradient(900px 500px at 100% 0%, var(--bg-2), transparent 55%),
+      var(--bg);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh;
+    line-height: 1.45;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 28px 16px 80px; }
+
+  header.hero {
+    text-align: center;
+    padding: 18px 16px 26px;
+    position: relative;
+  }
+  .eyebrow {
+    font-size: 12.5px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin: 0 0 10px;
+  }
+  h1 {
+    font-family: Georgia, "Times New Roman", serif;
+    font-style: italic;
+    font-weight: 700;
+    font-size: clamp(30px, 6vw, 48px);
+    margin: 0 0 8px;
+    text-wrap: balance;
+    color: var(--ink);
+  }
+  .sub {
+    color: var(--ink-soft);
+    font-size: 15.5px;
+    max-width: 46ch;
+    margin: 0 auto;
+  }
+  .flourish {
+    width: 120px; height: 10px; margin: 16px auto 0;
+    background: repeating-linear-gradient(90deg, var(--gold) 0 6px, transparent 6px 12px);
+    opacity: .7; border-radius: 10px;
+  }
+
+  .clue-bar {
+    position: sticky; top: 10px; z-index: 5;
+    background: var(--surface);
+    border: 1px solid var(--grid-line);
+    box-shadow: var(--shadow);
+    border-radius: 16px;
+    padding: 14px 18px;
+    margin: 22px 0 18px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .clue-bar .num {
+    flex: none;
+    width: 34px; height: 34px; border-radius: 50%;
+    background: var(--accent); color: var(--accent-ink);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14px;
+  }
+  .clue-bar .txt { font-size: 15px; }
+  .clue-bar .dir { color: var(--ink-soft); font-size: 12.5px; text-transform: uppercase; letter-spacing: .06em; }
+
+  .board {
+    background: var(--surface);
+    border: 1px solid var(--grid-line);
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+    padding: 18px;
+    overflow-x: auto;
+  }
+  .grid {
+    display: grid;
+    gap: 2px;
+    width: max-content;
+    margin: 0 auto;
+    background: var(--grid-line);
+    border: 2px solid var(--grid-line);
+    border-radius: 4px;
+  }
+  .cell {
+    position: relative;
+    width: 30px; height: 30px;
+    background: transparent;
+  }
+  .cell.block { background: transparent; }
+  .cell.open { background: var(--cell-bg); }
+  .cell.open.in-word { background: var(--cell-bg-active-word); }
+  .cell.open.active { background: var(--cell-bg-active); }
+  .cell input {
+    width: 100%; height: 100%;
+    border: none; background: transparent;
+    text-align: center;
+    font-size: 15px; font-weight: 600;
+    color: var(--ink);
+    text-transform: uppercase;
+    font-family: inherit;
+    caret-color: transparent;
+  }
+  .cell.active input { color: var(--cell-ink-active); }
+  .cell input:focus { outline: none; }
+  .cell .num {
+    position: absolute; top: 1px; left: 2px;
+    font-size: 8.5px; font-weight: 700;
+    color: var(--gold);
+    pointer-events: none;
+    line-height: 1;
+  }
+  .cell.active .num { color: var(--cell-ink-active); opacity: .8; }
+  .cell.correct input { color: var(--success); }
+  .cell.wrong input { color: var(--error); animation: shake .32s; }
+  .cell.keyword { box-shadow: inset 0 0 0 2px var(--gold); }
+  .cell.keyword .key {
+    position: absolute; bottom: 1px; right: 2px;
+    font-size: 8px; font-weight: 800;
+    color: #fff; background: var(--gold);
+    width: 10px; height: 10px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1; pointer-events: none;
+  }
+  .cell.keyword.active .key { background: var(--cell-ink-active); color: var(--cell-bg-active); }
+
+  .codeword {
+    display: flex; align-items: center; justify-content: center;
+    gap: 14px; flex-wrap: wrap;
+    margin: 6px 0 22px;
+  }
+  .codeword .label {
+    font-size: 12.5px; color: var(--ink-soft);
+    letter-spacing: .06em; text-transform: uppercase;
+  }
+  .codeword .slots { display: flex; gap: 6px; }
+  .codeword .slot {
+    width: 30px; height: 34px;
+    border: 2px dashed var(--grid-line);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: Georgia, serif; font-weight: 700; font-size: 18px;
+    color: var(--ink-soft);
+    background: var(--surface);
+    transition: border-color .2s ease, color .2s ease, background .2s ease;
+  }
+  .codeword .slot.filled { border-style: solid; border-color: var(--gold); color: var(--ink); background: var(--bg-2); }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
+  }
+
+  .controls {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    justify-content: center;
+    margin: 20px 0 6px;
+  }
+  button.btn {
+    font-family: inherit;
+    font-size: 14px; font-weight: 600;
+    padding: 11px 20px;
+    border-radius: 999px;
+    border: 1px solid var(--grid-line);
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  button.btn:hover { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(0,0,0,.12); }
+  button.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+  button.btn.ghost { color: var(--ink-soft); }
+
+  .clues {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+    margin-top: 34px;
+  }
+  @media (max-width: 640px) {
+    .clues { grid-template-columns: 1fr; }
+  }
+  .clues h2 {
+    font-family: Georgia, serif;
+    font-style: italic;
+    font-size: 20px;
+    margin: 0 0 12px;
+    color: var(--accent);
+  }
+  .clue-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+  .clue-item {
+    display: flex; gap: 10px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14.5px;
+    color: var(--ink);
+  }
+  .clue-item:hover { background: var(--bg-2); }
+  .clue-item.selected { background: var(--cell-bg-active-word); }
+  .clue-item.done { color: var(--ink-soft); }
+  .clue-item.done .n { color: var(--success); }
+  .clue-item .n { font-weight: 700; color: var(--gold); flex: none; min-width: 20px; }
+  .clue-item .len { color: var(--ink-soft); font-size: 12px; white-space: nowrap; }
+
+  footer.note {
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: 12.5px;
+    margin-top: 30px;
+  }
+
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(20, 8, 14, .72);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 50;
+    opacity: 0; pointer-events: none;
+    transition: opacity .35s ease;
+  }
+  .overlay.show { opacity: 1; pointer-events: auto; }
+  .overlay canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .overlay .card {
+    position: relative;
+    background: var(--surface);
+    border-radius: 22px;
+    padding: 40px 32px;
+    max-width: 420px;
+    text-align: center;
+    box-shadow: var(--shadow);
+    transform: scale(.9);
+    transition: transform .35s ease;
+  }
+  .overlay.show .card { transform: scale(1); }
+  .overlay .card h3 {
+    font-family: Georgia, serif;
+    font-style: italic;
+    font-size: 26px;
+    margin: 0 0 10px;
+    color: var(--accent);
+  }
+  .overlay .card p { color: var(--ink-soft); font-size: 15px; margin: 0 0 20px; }
+  .overlay .card .word {
+    font-family: Georgia, serif;
+    font-weight: 700;
+    letter-spacing: .12em;
+    font-size: 30px;
+    color: var(--gold);
+    margin-bottom: 18px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="wrap">
+  <header class="hero">
+    <p class="eyebrow">Квест · Девичник</p>
+    <h1>Кроссворд перед плахой</h1>
+    <p class="sub">15 слов между тобой и следующим заданием. Пять клеток отмечены золотым — это буквы кодового слова, соберите их по номеру.</p>
+    <div class="flourish"></div>
+  </header>
+
+  <div class="codeword">
+    <span class="label">Код:</span>
+    <div class="slots" id="codeSlots"></div>
+  </div>
+
+  <div class="clue-bar" id="clueBar">
+    <div class="num" id="clueBarNum">1</div>
+    <div>
+      <div class="dir" id="clueBarDir">По горизонтали</div>
+      <div class="txt" id="clueBarTxt">—</div>
+    </div>
+  </div>
+
+  <div class="board">
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div class="controls">
+    <button class="btn primary" id="checkBtn">Проверить</button>
+    <button class="btn" id="clearBtn">Очистить</button>
+    <button class="btn ghost" id="revealBtn">Показать ответы</button>
+  </div>
+
+  <div class="clues">
+    <div>
+      <h2>По горизонтали</h2>
+      <ul class="clue-list" id="acrossList"></ul>
+    </div>
+    <div>
+      <h2>По вертикали</h2>
+      <ul class="clue-list" id="downList"></ul>
+    </div>
+  </div>
+
+  <footer class="note">Обведённые золотым клетки — не отдельное слово, а буквы кода. Впишите все ответы, и код соберётся сам.</footer>
+</div>
+
+<div class="overlay" id="overlay">
+  <canvas id="confetti"></canvas>
+  <div class="card">
+    <h3>Код раскрыт!</h3>
+    <div class="word" id="mainWordReveal">ПЛАХА</div>
+    <p id="overlayText">Свобода официально казнена. Переходите к следующему заданию квеста.</p>
+    <button class="btn primary" id="closeOverlay">Ура, дальше</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  const RAW_ENTRIES = [
+    { id: 1, dir: 'A', word: 'БЛЕСК', row: 0, col: 0,
+      clue: 'Он должен появиться в глазах у каждой из вас уже к первому тосту' },
+    { id: 2, dir: 'D', word: 'ЛАСКА', row: -8, col: 5,
+      clue: 'То, что получит виновница вечера от каждой из вас' },
+    { id: 3, dir: 'A', word: 'ХОХОТ', row: -9, col: 6,
+      clue: 'Ржач' },
+    { id: 4, dir: 'A', word: 'АУРА', row: -7, col: 5,
+      clue: 'Невидимая штука, которая есть у человека. У тебя она положительная..)' },
+    { id: 5, dir: 'A', word: 'РОМАН', row: 4, col: -4,
+      clue: 'У неё начинается новая глава, и это не выдумка' },
+    { id: 6, dir: 'D', word: 'ОЛИМП', row: -1, col: 1,
+      clue: 'Главный спот Древней Греции' },
+    { id: 7, dir: 'D', word: 'ДЖАЗ', row: 5, col: -7,
+      clue: 'Его можно дать в значении «кринжануть». Вообще это музыкальный стиль' },
+    { id: 8, dir: 'D', word: 'НЕВЕСТА', row: -4, col: 3,
+      clue: 'Та, ради кого весь этот квест. Сегодня она в короне, а не в фате' },
+    { id: 9, dir: 'D', word: 'РОБОТ', row: 3, col: -3,
+      clue: 'То, что всех нас заменит' },
+    { id: 10, dir: 'A', word: 'ГАЛАКТИКА', row: 7, col: -8,
+      clue: 'По ней бы прокатиться автостопом' },
+    { id: 11, dir: 'D', word: 'ЗЕНИТ', row: -4, col: 6,
+      clue: 'Высшая точка солнца' },
+    { id: 12, dir: 'A', word: 'ТАЙМЛАПС', row: 2, col: -2,
+      clue: 'Медленное в нём быстро' },
+    { id: 13, dir: 'D', word: 'ПАРАДОКС', row: 1, col: -1,
+      clue: 'Ай-ай-ай, это... параллельные реалии' },
+    { id: 14, dir: 'D', word: 'ПОДРУГИ', row: -10, col: 7,
+      clue: 'Те, кто затащили её сюда вместо тихого вечера дома' },
+    { id: 15, dir: 'A', word: 'ФАНТАЗИЯ', row: -4, col: 1,
+      clue: 'Может быть богатая, эротическая, бурная' },
+  ];
+
+  // secret code ПЛАХА, spelled from one marked letter in five of the answers
+  const KEYWORD = [
+    { order: 1, id: 14, offset: 0 }, // ПОДРУГИ -> П
+    { order: 2, id: 2, offset: 0 }, // ЛАСКА -> Л
+    { order: 3, id: 4, offset: 0 }, // АУРА -> А
+    { order: 4, id: 3, offset: 0 }, // ХОХОТ -> Х
+    { order: 5, id: 15, offset: 1 }, // ФАНТАЗИЯ -> А
+  ];
+
+  const minRow = Math.min(...RAW_ENTRIES.map(e => e.row));
+  const minCol = Math.min(...RAW_ENTRIES.map(e => e.col));
+  const entries = RAW_ENTRIES.map(e => ({ ...e, row: e.row - minRow, col: e.col - minCol }));
+
+  let nrows = 0, ncols = 0;
+  entries.forEach(e => {
+    if (e.dir === 'A') { nrows = Math.max(nrows, e.row + 1); ncols = Math.max(ncols, e.col + e.word.length); }
+    else { nrows = Math.max(nrows, e.row + e.word.length); ncols = Math.max(ncols, e.col + 1); }
+  });
+
+  const cellData = {}; // "r,c" -> { letter }
+  entries.forEach(e => {
+    for (let i = 0; i < e.word.length; i++) {
+      const r = e.dir === 'A' ? e.row : e.row + i;
+      const c = e.dir === 'A' ? e.col + i : e.col;
+      cellData[r + ',' + c] = { letter: e.word[i] };
+    }
+  });
+
+  function isOpen(r, c) { return !!cellData[r + ',' + c]; }
+
+  // standard crossword numbering: scan top-to-bottom, left-to-right,
+  // number every cell that starts an across and/or down entry
+  const scanNumbers = {};
+  (function assignNumbers() {
+    let n = 0;
+    for (let r = 0; r < nrows; r++) {
+      for (let c = 0; c < ncols; c++) {
+        if (!isOpen(r, c)) continue;
+        const startsAcross = !isOpen(r, c - 1) && isOpen(r, c + 1);
+        const startsDown = !isOpen(r - 1, c) && isOpen(r + 1, c);
+        if (startsAcross || startsDown) scanNumbers[r + ',' + c] = ++n;
+      }
+    }
+  })();
+  entries.forEach(e => { e.number = scanNumbers[e.row + ',' + e.col]; });
+
+  // number cells (for rendering the small clue-number label)
+  const cellNumber = scanNumbers;
+
+  // build DOM grid
+  const gridEl = document.getElementById('grid');
+  gridEl.style.gridTemplateColumns = `repeat(${ncols}, 30px)`;
+  gridEl.style.gridTemplateRows = `repeat(${nrows}, 30px)`;
+
+  const inputs = {}; // "r,c" -> input element
+  const cellEls = {};
+
+  for (let r = 0; r < nrows; r++) {
+    for (let c = 0; c < ncols; c++) {
+      const div = document.createElement('div');
+      if (!isOpen(r, c)) {
+        div.className = 'cell block';
+        gridEl.appendChild(div);
+        continue;
+      }
+      div.className = 'cell open';
+      const key = r + ',' + c;
+      if (cellNumber[key]) {
+        const num = document.createElement('span');
+        num.className = 'num';
+        num.textContent = cellNumber[key];
+        div.appendChild(num);
+      }
+      const input = document.createElement('input');
+      input.maxLength = 1;
+      input.autocomplete = 'off';
+      input.spellcheck = false;
+      input.dataset.r = r; input.dataset.c = c;
+      div.appendChild(input);
+      div.addEventListener('mousedown', (ev) => { ev.preventDefault(); input.focus(); });
+      gridEl.appendChild(div);
+      inputs[key] = input;
+      cellEls[key] = div;
+    }
+  }
+
+  // map each cell to the across/down entries that use it
+  const cellEntries = {}; // "r,c" -> { A: entry|null, D: entry|null }
+  entries.forEach(e => {
+    for (let i = 0; i < e.word.length; i++) {
+      const r = e.dir === 'A' ? e.row : e.row + i;
+      const c = e.dir === 'A' ? e.col + i : e.col;
+      const key = r + ',' + c;
+      if (!cellEntries[key]) cellEntries[key] = {};
+      cellEntries[key][e.dir] = e;
+    }
+  });
+
+  // mark the five keyword cells and build the codeword strip
+  const entryById = {};
+  entries.forEach(e => { entryById[e.id] = e; });
+
+  const codeSlotsEl = document.getElementById('codeSlots');
+  const keywordCellKey = {}; // order -> "r,c"
+  const codeSlotEl = {}; // order -> slot div
+
+  KEYWORD.slice().sort((a, b) => a.order - b.order).forEach(k => {
+    const entry = entryById[k.id];
+    const [r, c] = entryCells(entry)[k.offset];
+    const key = r + ',' + c;
+    keywordCellKey[k.order] = key;
+    const el = cellEls[key];
+    if (el) {
+      el.classList.add('keyword');
+      const badge = document.createElement('span');
+      badge.className = 'key';
+      badge.textContent = k.order;
+      el.appendChild(badge);
+    }
+    const slot = document.createElement('div');
+    slot.className = 'slot';
+    codeSlotsEl.appendChild(slot);
+    codeSlotEl[k.order] = slot;
+  });
+
+  function updateCodeword() {
+    Object.keys(codeSlotEl).forEach(order => {
+      const key = keywordCellKey[order];
+      const val = inputs[key] ? inputs[key].value : '';
+      codeSlotEl[order].textContent = val;
+      codeSlotEl[order].classList.toggle('filled', !!val);
+    });
+  }
+
+  function currentCodeword() {
+    return Object.keys(codeSlotEl).sort((a, b) => a - b)
+      .map(order => (inputs[keywordCellKey[order]].value || '_')).join('');
+  }
+
+  let currentEntry = entries[0];
+  let currentDir = 'A';
+
+  function entryCells(e) {
+    const cells = [];
+    for (let i = 0; i < e.word.length; i++) {
+      const r = e.dir === 'A' ? e.row : e.row + i;
+      const c = e.dir === 'A' ? e.col + i : e.col;
+      cells.push([r, c]);
+    }
+    return cells;
+  }
+
+  function clearHighlight() {
+    Object.values(cellEls).forEach(el => el.classList.remove('in-word', 'active'));
+  }
+
+  function highlight(entry, activeR, activeC) {
+    clearHighlight();
+    entryCells(entry).forEach(([r, c]) => {
+      const el = cellEls[r + ',' + c];
+      if (el) el.classList.add('in-word');
+    });
+    if (activeR !== undefined) {
+      const el = cellEls[activeR + ',' + activeC];
+      if (el) el.classList.add('active');
+    }
+  }
+
+  function updateClueBar(entry) {
+    document.getElementById('clueBarNum').textContent = entry.number;
+    document.getElementById('clueBarDir').textContent = entry.dir === 'A' ? 'По горизонтали' : 'По вертикали';
+    document.getElementById('clueBarTxt').textContent = entry.clue;
+    document.querySelectorAll('.clue-item').forEach(li => {
+      li.classList.toggle('selected', li.dataset.key === entry.dir + entry.number);
+    });
+  }
+
+  function selectEntry(entry, r, c) {
+    currentEntry = entry; currentDir = entry.dir;
+    highlight(entry, r, c);
+    updateClueBar(entry);
+  }
+
+  function focusCell(r, c, dir) {
+    const key = r + ',' + c;
+    const input = inputs[key];
+    if (!input) return;
+    const avail = cellEntries[key] || {};
+    let entry = avail[dir] || avail['A'] || avail['D'];
+    if (!entry) return;
+    selectEntry(entry, r, c);
+    input.focus();
+  }
+
+  // click / focus handling per cell
+  Object.entries(inputs).forEach(([key, input]) => {
+    input.addEventListener('focus', () => {
+      const [r, c] = key.split(',').map(Number);
+      const avail = cellEntries[key] || {};
+      let entry = avail[currentDir] || avail['A'] || avail['D'];
+      selectEntry(entry, r, c);
+    });
+    input.addEventListener('mousedown', () => {
+      const [r, c] = key.split(',').map(Number);
+      const avail = cellEntries[key] || {};
+      // toggle direction if clicking the already-active cell and both directions exist
+      if (cellEls[key].classList.contains('active') && avail.A && avail.D) {
+        currentDir = currentDir === 'A' ? 'D' : 'A';
+      }
+    });
+
+    input.addEventListener('input', (ev) => {
+      const [r, c] = key.split(',').map(Number);
+      let val = input.value.toUpperCase().replace(/[^А-ЯЁ]/g, '');
+      input.value = val.slice(-1);
+      cellEls[key].classList.remove('correct', 'wrong');
+      updateCodeword();
+      if (input.value) {
+        moveNext(r, c);
+      }
+    });
+
+    input.addEventListener('keydown', (ev) => {
+      const [r, c] = key.split(',').map(Number);
+      if (ev.key === 'Backspace' && !input.value) {
+        movePrev(r, c);
+      } else if (ev.key === 'ArrowRight') { ev.preventDefault(); step(r, c, 0, 1); }
+      else if (ev.key === 'ArrowLeft') { ev.preventDefault(); step(r, c, 0, -1); }
+      else if (ev.key === 'ArrowDown') { ev.preventDefault(); step(r, c, 1, 0); }
+      else if (ev.key === 'ArrowUp') { ev.preventDefault(); step(r, c, -1, 0); }
+    });
+  });
+
+  function step(r, c, dr, dc) {
+    let rr = r + dr, cc = c + dc;
+    while (isOpen(rr, cc) === false && (rr >= 0 && rr < nrows && cc >= 0 && cc < ncols) === false) return;
+    if (isOpen(rr, cc)) {
+      const dir = dr !== 0 ? 'D' : 'A';
+      focusCell(rr, cc, dir);
+    }
+  }
+
+  function moveNext(r, c) {
+    if (currentDir === 'A') step(r, c, 0, 1); else step(r, c, 1, 0);
+  }
+  function movePrev(r, c) {
+    if (currentDir === 'A') step(r, c, 0, -1); else step(r, c, -1, 0);
+  }
+
+  // clue lists
+  const acrossList = document.getElementById('acrossList');
+  const downList = document.getElementById('downList');
+  entries.slice().sort((a, b) => a.number - b.number).forEach(e => {
+    const li = document.createElement('li');
+    li.className = 'clue-item';
+    li.dataset.key = e.dir + e.number;
+    li.innerHTML = `<span class="n">${e.number}.</span><span>${e.clue}</span>`;
+    li.addEventListener('click', () => {
+      const [r, c] = entryCells(e)[0];
+      focusCell(r, c, e.dir);
+    });
+    (e.dir === 'A' ? acrossList : downList).appendChild(li);
+  });
+
+  selectEntry(entries[0], entries[0].row, entries[0].col);
+  updateCodeword();
+
+  // check / clear / reveal
+  document.getElementById('checkBtn').addEventListener('click', () => {
+    let allCorrect = true;
+    let anyFilled = false;
+    Object.entries(cellData).forEach(([key, data]) => {
+      const input = inputs[key];
+      const el = cellEls[key];
+      el.classList.remove('correct', 'wrong');
+      if (!input.value) { allCorrect = false; return; }
+      anyFilled = true;
+      if (input.value === data.letter) el.classList.add('correct');
+      else { el.classList.add('wrong'); allCorrect = false; }
+    });
+    updateClueDoneStates();
+    if (allCorrect && anyFilled) showCompletion();
+  });
+
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    Object.entries(inputs).forEach(([key, input]) => {
+      input.value = '';
+      cellEls[key].classList.remove('correct', 'wrong');
+    });
+    updateClueDoneStates();
+    updateCodeword();
+  });
+
+  document.getElementById('revealBtn').addEventListener('click', () => {
+    if (!confirm('Показать все ответы? Обратно не откатить.')) return;
+    Object.entries(cellData).forEach(([key, data]) => {
+      inputs[key].value = data.letter;
+      cellEls[key].classList.remove('wrong');
+      cellEls[key].classList.add('correct');
+    });
+    updateClueDoneStates();
+    updateCodeword();
+  });
+
+  function updateClueDoneStates() {
+    entries.forEach(e => {
+      const cells = entryCells(e);
+      const done = cells.every(([r, c]) => {
+        const el = cellEls[r + ',' + c];
+        return el && el.classList.contains('correct');
+      });
+      const li = document.querySelector(`.clue-item[data-key="${e.dir}${e.number}"]`);
+      if (li) li.classList.toggle('done', done);
+    });
+  }
+
+  // completion overlay + confetti
+  const overlay = document.getElementById('overlay');
+  document.getElementById('closeOverlay').addEventListener('click', () => overlay.classList.remove('show'));
+
+  function showCompletion() {
+    document.getElementById('mainWordReveal').textContent = currentCodeword();
+    overlay.classList.add('show');
+    runConfetti();
+  }
+
+  function runConfetti() {
+    const canvas = document.getElementById('confetti');
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = overlay.clientWidth * dpr;
+    canvas.height = overlay.clientHeight * dpr;
+    ctx.scale(dpr, dpr);
+    const W = overlay.clientWidth, H = overlay.clientHeight;
+    const colors = ['#b21f52', '#e8c766', '#ff6f91', '#f6d9e4', '#5f7d4f'];
+    const pieces = Array.from({ length: 140 }, () => ({
+      x: Math.random() * W, y: -20 - Math.random() * H,
+      s: 4 + Math.random() * 6, sp: 1.5 + Math.random() * 3,
+      rot: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 0.2,
+      c: colors[Math.floor(Math.random() * colors.length)],
+    }));
+    let frame = 0;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduced) return;
+    function tick() {
+      if (!overlay.classList.contains('show')) { ctx.clearRect(0, 0, W, H); return; }
+      ctx.clearRect(0, 0, W, H);
+      pieces.forEach(p => {
+        p.y += p.sp; p.rot += p.vr;
+        if (p.y > H + 20) { p.y = -20; p.x = Math.random() * W; }
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.fillStyle = p.c;
+        ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * 0.6);
+        ctx.restore();
+      });
+      frame++;
+      if (frame < 420) requestAnimationFrame(tick);
+    }
+    tick();
+  }
+})();
+</script>

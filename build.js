@@ -1,0 +1,893 @@
+const fs = require('fs');
+const path = require('path');
+
+const html = `<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<meta name="referrer" content="no-referrer">
+<title>Квест Тимошиной</title>
+<style>
+:root {
+  --bg: #13111c;
+  --surface: #1e1a2e;
+  --surface-hover: #272240;
+  --pink: #ff5c8a;
+  --pink-glow: rgba(255,92,138,0.25);
+  --gold: #f0c050;
+  --gold-dim: rgba(240,192,80,0.15);
+  --mint: #6ee7a0;
+  --text: #f2ebe0;
+  --text-dim: #8a7fa0;
+  --text-muted: #5a5270;
+  --line: #2e2845;
+  --locked-bg: #19162a;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html { font-size:16px; -webkit-text-size-adjust:100%; }
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* === HEADER === */
+.header {
+  position: sticky; top:0; z-index:100;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  padding: 14px 20px 10px;
+}
+.header-top {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:8px;
+}
+.header h1 {
+  font-family: Georgia, serif;
+  font-size: 1.25rem; font-weight:400;
+  letter-spacing: 0.03em; color: var(--pink);
+}
+.stars-display {
+  display:flex; align-items:center; gap:6px;
+  font-size:0.9rem; font-weight:600; color:var(--gold);
+}
+.stars-display .star-icon { font-size:1.1rem; }
+.progress-bar {
+  width:100%; height:4px;
+  background:var(--line); border-radius:2px; overflow:hidden;
+}
+.progress-fill {
+  height:100%;
+  background: linear-gradient(90deg, var(--pink), var(--gold));
+  border-radius:2px;
+  transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+}
+.header-sub {
+  display:flex; justify-content:space-between; align-items:center;
+  margin-top:6px;
+}
+.progress-text { font-size:0.7rem; color:var(--text-muted); }
+.shop-btn {
+  padding:9px 14px; border:1px solid var(--gold); border-radius:16px;
+  background:transparent; color:var(--gold);
+  font-size:0.72rem; cursor:pointer; letter-spacing:0.04em;
+  -webkit-tap-highlight-color:transparent; min-height:36px;
+}
+
+/* === TABS / VIEWS === */
+.view { display:none; }
+.view.active { display:block; }
+
+/* === QUEST === */
+.quest-container { padding:0 20px 120px; position:relative; }
+.timeline-line {
+  position:absolute; left:36px; top:0; bottom:0; width:2px;
+  background: repeating-linear-gradient(to bottom,var(--line) 0,var(--line) 6px,transparent 6px,transparent 12px);
+}
+.stage {
+  position:relative; padding:24px 0 0 44px;
+  cursor:pointer; -webkit-tap-highlight-color:transparent;
+}
+.stage-dot {
+  position:absolute; left:24px; top:28px;
+  width:26px; height:26px; border-radius:50%;
+  border:2px solid var(--text-muted); background:var(--bg);
+  display:flex; align-items:center; justify-content:center;
+  font-size:0.65rem; font-weight:700; color:var(--text-muted);
+  transition: all 0.3s ease; z-index:2;
+}
+.stage.active .stage-dot {
+  border-color:var(--pink); color:var(--pink);
+  box-shadow:0 0 12px var(--pink-glow);
+}
+.stage.completed .stage-dot {
+  border-color:var(--gold); background:var(--gold); color:var(--bg);
+}
+.stage.locked .stage-dot { opacity:0.4; }
+
+.stage-card {
+  background:var(--surface); border-radius:14px;
+  padding:16px 18px; border:1px solid var(--line);
+  transition: all 0.3s ease;
+}
+.stage.active .stage-card {
+  border-color:var(--pink);
+  box-shadow:0 4px 30px var(--pink-glow);
+}
+.stage.completed .stage-card {
+  border-color:rgba(240,192,80,0.3); opacity:0.85;
+}
+.stage.locked .stage-card { background:var(--locked-bg); opacity:0.4; }
+
+.stage-emoji { font-size:1.6rem; margin-bottom:6px; }
+.stage-name {
+  font-family:Georgia,serif; font-size:1.15rem;
+  font-weight:400; margin-bottom:2px;
+}
+.stage.locked .stage-name { filter:blur(3px); user-select:none; }
+.stage-subtitle { font-size:0.78rem; color:var(--text-dim); font-style:italic; }
+.stage.locked .stage-subtitle { filter:blur(2px); }
+
+.stage-body { display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line); }
+.stage.active .stage-body,
+.stage.completed .stage-body.show { display:block; }
+
+.stage-story { font-size:0.9rem; line-height:1.55; margin-bottom:16px; }
+.stage-story strong { color:var(--gold); }
+
+.task-block {
+  background:var(--gold-dim); border:1px solid rgba(240,192,80,0.2);
+  border-radius:10px; padding:14px 16px; margin-bottom:14px;
+}
+.task-label {
+  font-size:0.7rem; text-transform:uppercase;
+  letter-spacing:0.1em; color:var(--gold);
+  margin-bottom:6px; font-weight:600;
+}
+.task-text { font-size:0.9rem; line-height:1.5; }
+
+.complete-btn {
+  display:block; width:100%; padding:16px;
+  border:none; border-radius:12px;
+  background:var(--pink); color:#fff;
+  font-size:1.05rem; font-weight:600; cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  transition: all 0.2s ease; letter-spacing:0.02em;
+}
+.complete-btn:active { transform:scale(0.97); opacity:0.9; }
+
+.completed-badge {
+  display:none; text-align:center; padding:10px 0;
+}
+.stage.completed .completed-badge { display:block; }
+.badge-stars { font-size:1.5rem; letter-spacing:4px; margin-bottom:2px; }
+.badge-text { font-size:0.78rem; color:var(--mint); }
+
+/* === REWARD POPUP === */
+.reward-overlay {
+  position:fixed; inset:0; z-index:200;
+  background:rgba(19,17,28,0.95);
+  display:none; flex-direction:column;
+  align-items:center; justify-content:center;
+  text-align:center; padding:30px;
+}
+.reward-overlay.show { display:flex; }
+.reward-stars { font-size:3rem; margin-bottom:10px; }
+.reward-title {
+  font-family:Georgia,serif; font-size:1.4rem;
+  color:var(--gold); margin-bottom:8px;
+}
+.reward-subtitle { font-size:0.85rem; color:var(--text-dim); margin-bottom:20px; }
+.reward-close {
+  padding:14px 40px; border:none; border-radius:10px;
+  background:var(--gold); color:var(--bg);
+  font-size:1rem; font-weight:600; cursor:pointer;
+}
+
+/* === SHOP === */
+.shop { padding:20px; }
+.shop-title {
+  font-family:Georgia,serif; font-size:1.3rem;
+  color:var(--pink); margin-bottom:4px;
+}
+.shop-sub { font-size:0.8rem; color:var(--text-dim); margin-bottom:20px; }
+.shop-grid {
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+.shop-item {
+  background:var(--surface); border:1px solid var(--line);
+  border-radius:14px; padding:14px;
+  display:flex; flex-direction:column;
+}
+.shop-item.disabled { opacity:0.5; }
+.shop-item.locked {
+  align-items:center; justify-content:center; text-align:center;
+  background:var(--locked-bg); min-height:150px;
+}
+.shop-item.locked .lock-icon { font-size:1.8rem; margin-bottom:6px; }
+.shop-item.locked .lock-text { font-size:0.7rem; color:var(--text-muted); }
+.shop-emoji { font-size:1.8rem; margin-bottom:6px; }
+.shop-name { font-family:Georgia,serif; font-size:1rem; margin-bottom:4px; }
+.shop-desc { font-size:0.75rem; color:var(--text-dim); line-height:1.4; margin-bottom:10px; flex:1; }
+.shop-footer { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+.shop-cost { font-size:0.85rem; font-weight:600; color:var(--gold); white-space:nowrap; }
+.shop-buy {
+  padding:10px 16px; border:none; border-radius:8px;
+  background:var(--pink); color:#fff;
+  font-size:0.8rem; font-weight:600; cursor:pointer;
+  min-height:40px; -webkit-tap-highlight-color:transparent;
+}
+.shop-buy:active { transform:scale(0.96); }
+.shop-buy:disabled { background:var(--text-muted); cursor:default; }
+.shop-bought { margin-top:8px; font-size:0.7rem; color:var(--mint); text-align:center; }
+
+.back-btn {
+  display:flex; align-items:center; gap:6px;
+  padding:8px 0; border:none; background:none;
+  color:var(--pink); font-size:0.85rem; cursor:pointer;
+  margin-bottom:16px;
+}
+
+.reset-btn {
+  display:block; width:100%; margin-top:24px;
+  padding:12px; border:1px solid var(--line); border-radius:10px;
+  background:none; color:var(--text-muted);
+  font-size:0.8rem; cursor:pointer; min-height:40px;
+  -webkit-tap-highlight-color:transparent;
+}
+.reset-btn:active { background:var(--surface-hover); }
+
+/* === QUIZ === */
+.quiz-container { margin:12px 0; }
+.quiz-q {
+  background:var(--surface-hover); border-radius:10px;
+  padding:14px 16px; margin-bottom:10px;
+}
+.quiz-q-text { font-size:0.88rem; margin-bottom:10px; }
+.quiz-options { display:flex; flex-direction:column; gap:6px; }
+.quiz-opt {
+  display:block; width:100%; padding:10px 14px;
+  border:1px solid var(--line); border-radius:8px;
+  background:var(--bg); color:var(--text);
+  font-size:0.85rem; text-align:left; cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  transition: all 0.2s ease;
+}
+.quiz-opt:active { transform:scale(0.98); }
+.quiz-opt.correct { border-color:var(--mint); background:rgba(110,231,160,0.1); color:var(--mint); }
+.quiz-opt.wrong { border-color:#ff4444; background:rgba(255,68,68,0.1); color:#ff6b6b; }
+.quiz-opt.disabled { pointer-events:none; opacity:0.5; }
+.quiz-letter {
+  text-align:center; margin-top:8px;
+  font-family:Georgia,serif; font-size:1.4rem; color:var(--gold);
+  min-height:1.8em;
+}
+.quiz-result {
+  text-align:center; padding:14px;
+  background:var(--gold-dim); border-radius:10px;
+  margin-top:12px; display:none;
+}
+.quiz-result.show { display:block; }
+.quiz-result .word { font-family:Georgia,serif; font-size:2rem; color:var(--gold); letter-spacing:0.15em; margin-bottom:4px; }
+.quiz-result .hint { font-size:0.82rem; color:var(--text-dim); }
+
+/* === REBUS === */
+.rebus-container { text-align:center; padding:10px 0; }
+.rebus-emojis { font-size:2.2rem; margin-bottom:12px; letter-spacing:0.1em; }
+.rebus-input-wrap { display:flex; gap:8px; }
+.rebus-input {
+  flex:1; min-width:0; padding:12px 14px;
+  border:1px solid var(--line); border-radius:10px;
+  background:var(--bg); color:var(--text);
+  font-size:1rem; outline:none;
+}
+.rebus-input:focus { border-color:var(--pink); }
+.rebus-check {
+  padding:12px 18px; border:none; border-radius:10px;
+  background:var(--gold); color:var(--bg);
+  font-size:0.9rem; font-weight:600; cursor:pointer;
+}
+.rebus-feedback { margin-top:10px; font-size:0.85rem; min-height:1.2em; }
+.rebus-feedback.success { color:var(--mint); }
+.rebus-feedback.error { color:#ff6b6b; }
+
+/* === ILYA QUIZ === */
+.ilya-q {
+  background:var(--surface-hover); border-radius:10px;
+  padding:14px; margin-bottom:8px;
+}
+.ilya-q-text { font-size:0.88rem; margin-bottom:6px; }
+.ilya-q-hint { font-size:0.78rem; color:var(--text-dim); font-style:italic; }
+.ilya-reveal {
+  display:none; padding:8px 14px;
+  background:rgba(110,231,160,0.08); border-radius:8px;
+  margin-top:6px; color:var(--mint); font-size:0.85rem;
+}
+.ilya-show-btn {
+  display:inline-block; padding:6px 14px;
+  border:1px solid var(--pink); border-radius:6px;
+  background:transparent; color:var(--pink);
+  font-size:0.78rem; cursor:pointer; margin-top:6px;
+}
+
+/* === SURPRISE === */
+.surprise-overlay {
+  position:fixed; inset:0; background:var(--bg);
+  z-index:200; display:none; flex-direction:column;
+  align-items:center; justify-content:center;
+  text-align:center; padding:40px;
+}
+.surprise-overlay.show { display:flex; }
+.surprise-emoji { font-size:4rem; margin-bottom:20px; animation:bounce 0.6s ease infinite alternate; }
+.surprise-title { font-family:Georgia,serif; font-size:2rem; color:var(--gold); margin-bottom:12px; }
+.surprise-text { font-size:1rem; line-height:1.6; max-width:320px; margin-bottom:30px; }
+.surprise-close { padding:14px 36px; border:1px solid var(--gold); border-radius:10px; background:transparent; color:var(--gold); font-size:1rem; cursor:pointer; }
+
+#confetti { position:fixed; inset:0; pointer-events:none; z-index:201; }
+
+.scroll-indicator {
+  position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+  padding:10px 20px; background:var(--pink); color:#fff;
+  border-radius:20px; font-size:0.85rem; font-weight:500;
+  cursor:pointer; z-index:50; box-shadow:0 4px 20px var(--pink-glow);
+  display:none; -webkit-tap-highlight-color:transparent;
+}
+
+@keyframes bounce { from{transform:translateY(0)} to{transform:translateY(-10px)} }
+@keyframes popIn { 0%{transform:scale(0.8);opacity:0} 100%{transform:scale(1);opacity:1} }
+@keyframes starPulse { 0%{transform:scale(1)} 50%{transform:scale(1.3)} 100%{transform:scale(1)} }
+.star-pop { animation: starPulse 0.4s ease; }
+
+@media (prefers-color-scheme:light) {
+  :root {
+    --bg:#f8f5f0; --surface:#fff; --surface-hover:#f0ece6;
+    --text:#1a1625; --text-dim:#6b5f82; --text-muted:#a098b0;
+    --line:#e0dce8; --locked-bg:#f0ece6;
+    --pink-glow:rgba(255,92,138,0.15);
+    --gold-dim:rgba(200,150,40,0.08);
+  }
+}
+:root[data-theme="light"] {
+  --bg:#f8f5f0; --surface:#fff; --surface-hover:#f0ece6;
+  --text:#1a1625; --text-dim:#6b5f82; --text-muted:#a098b0;
+  --line:#e0dce8; --locked-bg:#f0ece6;
+  --pink-glow:rgba(255,92,138,0.15);
+  --gold-dim:rgba(200,150,40,0.08);
+}
+:root[data-theme="dark"] {
+  --bg:#13111c; --surface:#1e1a2e; --surface-hover:#272240;
+  --text:#f2ebe0; --text-dim:#8a7fa0; --text-muted:#5a5270;
+  --line:#2e2845; --locked-bg:#19162a;
+  --pink-glow:rgba(255,92,138,0.25);
+  --gold-dim:rgba(240,192,80,0.15);
+}
+
+@media (max-width:400px) {
+  .header, .quest-container, .shop { padding-left:14px; padding-right:14px; }
+  .stage { padding-left:38px; }
+  .stage-dot { left:20px; }
+  .timeline-line { left:32px; }
+  .shop-grid { gap:10px; }
+  .shop-item { padding:12px; }
+  .shop-footer { flex-direction:column; align-items:stretch; }
+  .shop-buy { width:100%; }
+  .shop-cost { text-align:center; }
+  .rebus-emojis { font-size:1.8rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <h1>Квест Тимошиной</h1>
+    <div class="stars-display">
+      <span class="star-icon">🪙</span>
+      <span id="starCount">0</span>
+    </div>
+  </div>
+  <div class="progress-bar">
+    <div class="progress-fill" id="progressFill" style="width:0%"></div>
+  </div>
+  <div class="header-sub">
+    <span class="progress-text" id="progressText">0 из 13</span>
+    <button class="shop-btn" onclick="showShop()">Магазин 🛍</button>
+  </div>
+</div>
+
+<div class="view active" id="questView">
+  <div class="quest-container">
+    <div class="timeline-line"></div>
+    <div id="stages"></div>
+  </div>
+</div>
+
+<div class="view" id="shopView">
+  <div class="shop">
+    <button class="back-btn" onclick="showQuest()">← Назад к маршруту</button>
+    <div class="shop-title">Магазин зманет</div>
+    <div class="shop-sub" id="shopSub">Трать зманеты на призы прямо по ходу ночи</div>
+    <div class="shop-grid" id="shopGrid"></div>
+    <button class="reset-btn" onclick="resetProgress()">Начать заново 🔄</button>
+  </div>
+</div>
+
+<div class="reward-overlay" id="reward">
+  <div class="reward-stars" id="rewardStars"></div>
+  <div class="reward-title" id="rewardTitle"></div>
+  <div class="reward-subtitle" id="rewardSub"></div>
+  <button class="reward-close" onclick="closeReward()">Дальше!</button>
+</div>
+
+<div class="surprise-overlay" id="surprise">
+  <div class="surprise-emoji">✈️</div>
+  <div class="surprise-title">Сюрприз в 5:35!</div>
+  <div class="surprise-text">
+    Лена прилетает из Москвы!<br><br>
+    Ты знаешь, что она будет 29-го, но не знаешь, что рано утром.<br><br>
+    Едем в Рощино встречать!
+    31 июля 2019 года Карась познакомила тебя с Леной. Круг замыкается.
+  </div>
+  <button class="surprise-close" onclick="closeSurprise()">Ну ничего себе!</button>
+</div>
+
+<canvas id="confetti"></canvas>
+<div class="scroll-indicator" id="scrollBtn" onclick="scrollToActive()">Текущая точка</div>
+
+<script>
+const STAGES = [
+  {
+    emoji:"🌉", name:"Мост влюблённых",
+    subtitle:"Где зарождалась Тимошина",
+    story:"Зарекой тебе было 12-16 лет. Все дороги твоей молодости начинались здесь. Сейчас они тоже начнутся здесь.",
+    task:"Надень фату! Первый тост одноразовыми стаканчиками за молодость, за дружбу и за ночь, которая изменит статус. Включаем колонку!",
+    type:"simple", stars:1
+  },
+  {
+    emoji:"🚶‍♀️", name:"Набережная",
+    subtitle:"К 25 школе",
+    story:"Шлёпаем, угараем по набережной в сторону <strong>25 школы</strong>, где ты училась. Тут 100% была твоя первая любовь.",
+    task:"Групповое селфи на набережной! В школе ты отлично училась — докажи это: обыграй нас в дурака, или пей три стопки!",
+    type:"simple", stars:1
+  },
+  {
+    emoji:"🧥", name:"Двор КМЛ",
+    subtitle:"История о пуховике",
+    story:"Культовый двор. Здесь случилась <strong>легендарная история о пуховике</strong>. Ты помнишь. Все помнят.",
+    task:"Расскажи историю пуховика во всех подробностях. Подружки голосуют: правда или приукрашиваешь? За каждое «приукрашивает» — глоток!",
+    type:"simple", stars:1
+  },
+  {
+    emoji:"🤸", name:"Кулёк",
+    subtitle:"Шпагат-челлендж",
+    story:"У тебя есть фото на шпагате в самых неожиданных местах — в бане на Юшкова, с незнакомыми девушками... Кулёк помнит всё.",
+    task:"Вспомни вслух все места, где ты садилась на шпагат! За каждое место — зманета. А если повторишь шпагат прямо сейчас — сможешь обналичить их все!",
+    type:"simple", stars:1
+  },
+  {
+    emoji:"🎤", name:"Караоке 777",
+    subtitle:"Пой или пей",
+    story:"Однажды после закрытия Северного Флота вы с Карась осознали себя <strong>поющими в караоке с какими-то двумя типами Меладзе в 8 утра</strong>. В тот же вечер у Карась увели твиттер.",
+    task:"Спой «Невесту» Мумий Тролля на камеру! Потом разгадайте кроссворд, чтобы узнать следующую точку.",
+    type:"simple", stars:1
+  },
+  {
+    emoji:"🔥", name:"Плаха",
+    subtitle:"Где зарождались нефоры",
+    story:"«Где зарождались нефоры». Культовое место нефорской Тюмени. Тут можно достать <strong>нефорские фотки</strong> и поугарать.",
+    task:"Распиваем страйк или блейзер. Фото в стиле 2010-х: серьёзные лица, чёлки, рок-позы! Конкурс на самую эмо-позу — невеста судит, проигравшие пьют штрафную. Победительница открывает конверт с указаниями к следующей точке.",
+    type:"simple", stars:1
+  },
+  {
+    emoji:"🍕", name:"КМЛ",
+    subtitle:"База, перекус",
+    story:"Ну это база. Тут мы едим. Заправляемся перед второй частью ночи. Но уйти просто так не получится...",
+    task:"Разгадай ребус, чтобы узнать следующую точку!",
+    type:"rebus", stars:1, bonusStars:1
+  },
+  {
+    emoji:"🍺", name:"Ржавый дед",
+    subtitle:"Легенда",
+    story:"РЖАВЫЙ ДЕД ГОСПОДИ. Бар с характером.",
+    task:"Каждая подружка рассказывает самую безумную историю с тобой. Ты выбираешь победительницу. Проигравшие пьют!",
+    type:"simple", stars:1
+  },
+  {
+    emoji:"🥃", name:"Бутлегер",
+    subtitle:"Контрабанда",
+    story:"Бар из коллекции мест, где прошла молодость. Сюда забегали между приключениями.",
+    task:"Закажи «то, что мы тут всегда пьём». Угадала? Все пьют за твою память! Не угадала? Штрафная!",
+    type:"simple", stars:1
+  },
+  {
+    emoji:"⚓", name:"Северный флот",
+    subtitle:"Все по местам!",
+    story:"Легендарный бар. Ты поставила огонёк. Это место — обязательная программа.",
+    task:"Надеваем тельняшки! Водка за моряков! Каждая говорит тост в морском стиле. Самый креативный побеждает.",
+    type:"simple", stars:1
+  },
+  {
+    emoji:"💚", name:"Здоровье",
+    subtitle:"Где всё началось",
+    story:"С Ильёй вы уже были знакомы, но именно <strong>здесь всё началось по-настоящему</strong>. Круг замкнулся. Из бара «Здоровье» начинается новая глава.",
+    task:"Финальный тост за любовь, за дружбу и за новую жизнь! Каждая подружка говорит тебе одно пожелание.",
+    type:"final", stars:1
+  }
+];
+
+const SHOP_ITEMS = [
+  { id:'taxi', emoji:'🚕', name:'Телепорт-такси', desc:'Мгновенная эвакуация до следующей точки, если ноги отваливаются', cost:3 },
+  { id:'cool', emoji:'🧊', name:'Охлаждающий пакет', desc:'Лёд на лоб и на загривок — освежает голову и совесть', cost:2 },
+  { id:'fuel', emoji:'🥃', name:'Алкотопливо', desc:'Внеплановая стопка для храбрости', cost:2 },
+  { id:'snack', emoji:'🍟', name:'Закусить-перекусить', desc:'Что-нибудь, чтобы заесть предыдущие три пункта', cost:2 },
+  { id:'secret', emoji:'🤫', name:'Секретик', desc:'Выбираешь любого человека из компании — он тут же раскрывает свою тайну', cost:4 },
+  { id:'hangover', emoji:'🎁', name:'Похмельная корзина', desc:'Рассол, аспирин и святая вода на утро — для тех, кто дошёл почти до конца', cost:6, minCompleted: STAGES.length-2 }
+];
+
+function plural(n, one, few, many) {
+  const n100=n%100, n10=n%10;
+  if(n100>=11 && n100<=14) return many;
+  if(n10===1) return one;
+  if(n10>=2 && n10<=4) return few;
+  return many;
+}
+function zmanetWord(n) { return plural(n,'зманет','зманета','зманетов'); }
+
+let state = {
+  current:0, completed:[], stars:0,
+  quizAnswers:{}, rebusGuessed:false, rebusRevealed:false,
+  purchases:{}
+};
+
+function loadState() {
+  try { const s=localStorage.getItem('tquest_v4'); if(s) state=JSON.parse(s); } catch(e) {}
+}
+function saveState() { localStorage.setItem('tquest_v4', JSON.stringify(state)); }
+
+function updateHeader() {
+  const pct=(state.completed.length/STAGES.length)*100;
+  document.getElementById('progressFill').style.width=pct+'%';
+  document.getElementById('progressText').textContent=state.completed.length+' из '+STAGES.length;
+  document.getElementById('starCount').textContent=state.stars;
+  const totalBought=Object.values(state.purchases).reduce((a,b)=>a+b,0);
+  document.querySelector('.shop-btn').textContent='Магазин '+(totalBought?('· '+totalBought+' 🛍'):'🛍');
+}
+
+function getStatus(i) {
+  if(state.completed.includes(i)) return 'completed';
+  if(i===state.current) return 'active';
+  return 'locked';
+}
+
+function renderStages() {
+  const c=document.getElementById('stages');
+  c.innerHTML='';
+  STAGES.forEach((s,i) => {
+    const st=getStatus(i);
+    const div=document.createElement('div');
+    div.className='stage '+st;
+    div.id='stage-'+i;
+
+    let body='';
+    if(st==='active'||st==='completed') {
+      const earned=getEarnedStars(s,i);
+      body=\`<div class="stage-body \${st==='completed'?'':'show'}">
+        <div class="stage-story">\${s.story}</div>
+        \${renderTask(s,i)}
+        \${st==='active'?\`<button class="complete-btn" onclick="completeStage(\${i})">Выполнено! 🪙</button>\`:''}
+        <div class="completed-badge">
+          <div class="badge-stars">\${'🪙'.repeat(earned)}</div>
+          <div class="badge-text">Пройдено</div>
+        </div>
+      </div>\`;
+    }
+
+    div.innerHTML=\`<div class="stage-dot">\${i+1}</div>
+      <div class="stage-card" onclick="toggleCard(\${i})">
+        <div class="stage-emoji">\${s.emoji}</div>
+        <div class="stage-name">\${s.name}</div>
+        <div class="stage-subtitle">\${s.subtitle}</div>
+        \${body}
+      </div>\`;
+    c.appendChild(div);
+  });
+  updateHeader();
+}
+
+function getEarnedStars(s,i) {
+  if(!state.completed.includes(i)) return 0;
+  let earned=s.stars||1;
+  if(s.type==='quiz' && s.bonusStars) {
+    const correct=s.quiz.filter((_,qi)=>state.quizAnswers[i+'-'+qi]===s.quiz[qi].correct).length;
+    earned+=correct;
+  }
+  if(s.type==='rebus' && s.bonusStars && state.rebusGuessed) {
+    earned+=s.bonusStars;
+  }
+  return earned;
+}
+
+function renderTask(s,i) {
+  let extra='';
+  if(s.type==='quiz') extra=renderQuiz(s.quiz,i);
+  else if(s.type==='rebus') extra=renderRebus();
+  else if(s.type==='ilya') extra=renderIlya(s.questions);
+  return \`<div class="task-block">
+    <div class="task-label">Задание</div>
+    <div class="task-text">\${s.task}</div>
+  </div>\${extra}\`;
+}
+
+function renderQuiz(quiz,idx) {
+  let h='<div class="quiz-container">';
+  quiz.forEach((q,qi) => {
+    h+=\`<div class="quiz-q"><div class="quiz-q-text">\${qi+1}. \${q.q}</div><div class="quiz-options">\`;
+    q.opts.forEach((opt,oi) => {
+      const ans=state.quizAnswers[idx+'-'+qi];
+      const answered=ans!==undefined;
+      let cls='';
+      if(answered) {
+        if(oi===q.correct) cls='correct';
+        else if(oi===ans && ans!==q.correct) cls='wrong';
+        cls+=' disabled';
+      }
+      h+=\`<button class="quiz-opt \${cls}" onclick="answerQuiz(\${idx},\${qi},\${oi})">\${opt}</button>\`;
+    });
+    h+='</div>';
+    const ans=state.quizAnswers[idx+'-'+qi];
+    const letter=ans!==undefined?(ans===q.correct?q.letter:'·'):'';
+    h+=\`<div class="quiz-letter">\${letter}</div></div>\`;
+  });
+  const allDone=quiz.every((_,qi)=>state.quizAnswers[idx+'-'+qi]!==undefined);
+  const word=quiz.map((q,qi)=>state.quizAnswers[idx+'-'+qi]===q.correct?q.letter:'_').join('');
+  h+=\`<div class="quiz-result \${allDone?'show':''}">
+    <div class="word">\${word||'ПЛАХА'}</div>
+    <div class="hint">Следующая точка: \${word==='ПЛАХА'?'Плаха!':'Разгадай все вопросы!'}</div>
+  </div></div>\`;
+  return h;
+}
+
+function answerQuiz(si,qi,oi) {
+  if(state.quizAnswers[si+'-'+qi]!==undefined) return;
+  state.quizAnswers[si+'-'+qi]=oi;
+  saveState();
+  renderStages();
+}
+
+function renderRebus() {
+  if(!state.rebusRevealed) {
+    return \`<div class="rebus-container">
+      <button class="ilya-show-btn" onclick="revealRebus()">Раскрыть ребус 🔍</button>
+    </div>\`;
+  }
+  return \`<div class="rebus-container">
+    <div class="rebus-emojis">🟠🔩 + ⏳ + 👴</div>
+    <div class="rebus-input-wrap">
+      <input class="rebus-input" id="rebusInput" placeholder="Введи ответ..." autocomplete="off">
+      <button class="rebus-check" onclick="checkRebus()">→</button>
+    </div>
+    <div class="rebus-feedback" id="rebusFeedback">\${state.rebusGuessed?'<span class="success">Ржавый Дед! Верно!</span>':''}</div>
+  </div>\`;
+}
+
+function revealRebus() {
+  state.rebusRevealed=true;
+  saveState();
+  renderStages();
+}
+
+function checkRebus() {
+  const v=document.getElementById('rebusInput').value.trim().toLowerCase();
+  const fb=document.getElementById('rebusFeedback');
+  if((v.includes('ржав')&&v.includes('дед'))||v==='ржавыйдед') {
+    fb.innerHTML='<span class="success">Ржавый Дед! Верно! +1 🪙</span>';
+    state.rebusGuessed=true;
+    saveState();
+  } else if(v.length>0) {
+    fb.innerHTML='<span class="error">Не-а! Подсказка: что бывает оранжевым и на болтах?</span>';
+  }
+}
+
+function renderIlya(questions) {
+  let h='<div class="ilya-quiz">';
+  questions.forEach((q,i) => {
+    h+=\`<div class="ilya-q">
+      <div class="ilya-q-text">\${i+1}. \${q.q}</div>
+      <div class="ilya-q-hint">\${q.hint}</div>
+      <button class="ilya-show-btn" onclick="this.style.display='none';this.nextElementSibling.style.display='block'">Показать</button>
+      <div class="ilya-reveal">Ответила? Верно или нет — подружки решают! Штрафная за неправильный!</div>
+    </div>\`;
+  });
+  h+='</div>';
+  return h;
+}
+
+function completeStage(i) {
+  if(state.completed.includes(i)) return;
+  const s=STAGES[i];
+  const earned=s.stars||1;
+  let bonus=0;
+  if(s.type==='quiz'&&s.bonusStars) {
+    bonus=s.quiz.filter((_,qi)=>state.quizAnswers[i+'-'+qi]===s.quiz[qi].correct).length;
+  }
+  if(s.type==='rebus'&&s.bonusStars&&state.rebusGuessed) bonus=s.bonusStars;
+
+  const totalEarned=earned+bonus;
+  state.stars+=totalEarned;
+  state.completed.push(i);
+  state.current=Math.min(i+1,STAGES.length-1);
+
+  saveState();
+  showReward(s, totalEarned, i);
+}
+
+function showReward(s, earned, stageIdx) {
+  const overlay=document.getElementById('reward');
+  document.getElementById('rewardStars').textContent='🪙'.repeat(earned);
+  document.getElementById('rewardTitle').textContent='+'+earned+' '+zmanetWord(earned)+'!';
+  document.getElementById('rewardSub').textContent=
+    stageIdx===STAGES.length-1?'Квест пройден!':'Загляни в магазин или вперёд к следующей точке!';
+  overlay.classList.add('show');
+  launchConfetti();
+}
+
+function closeReward() {
+  document.getElementById('reward').classList.remove('show');
+  const i=state.completed[state.completed.length-1];
+
+  if(i===STAGES.length-1) {
+    setTimeout(()=>{ document.getElementById('surprise').classList.add('show'); launchConfetti(); }, 400);
+  }
+
+  renderStages();
+  setTimeout(()=>{
+    const next=document.getElementById('stage-'+(i+1));
+    if(next) next.scrollIntoView({behavior:'smooth',block:'center'});
+  },300);
+}
+
+function closeSurprise() { document.getElementById('surprise').classList.remove('show'); }
+
+function toggleCard(i) {
+  if(getStatus(i)!=='completed') return;
+  const body=document.getElementById('stage-'+i).querySelector('.stage-body');
+  if(body) body.classList.toggle('show');
+}
+
+function showShop() {
+  document.getElementById('questView').classList.remove('active');
+  document.getElementById('shopView').classList.add('active');
+  renderShop();
+}
+
+function showQuest() {
+  document.getElementById('shopView').classList.remove('active');
+  document.getElementById('questView').classList.add('active');
+}
+
+function renderShop() {
+  const grid=document.getElementById('shopGrid');
+  grid.innerHTML='';
+  document.getElementById('shopSub').textContent='Баланс: 🪙 '+state.stars+' '+zmanetWord(state.stars);
+
+  SHOP_ITEMS.forEach(item => {
+    const div=document.createElement('div');
+    const locked = item.minCompleted!==undefined && state.completed.length<item.minCompleted;
+    if(locked) {
+      div.className='shop-item locked';
+      div.innerHTML=\`<div class="lock-icon">🔒</div><div class="lock-text">Откроется на последних точках маршрута</div>\`;
+    } else {
+      const affordable=state.stars>=item.cost;
+      const bought=state.purchases[item.id]||0;
+      div.className='shop-item'+(affordable?'':' disabled');
+      div.innerHTML=\`
+        <div class="shop-emoji">\${item.emoji}</div>
+        <div class="shop-name">\${item.name}</div>
+        <div class="shop-desc">\${item.desc}</div>
+        <div class="shop-footer">
+          <span class="shop-cost">🪙 \${item.cost}</span>
+          <button class="shop-buy" \${affordable?'':'disabled'} onclick="buyItem('\${item.id}')">Обменять</button>
+        </div>
+        \${bought?\`<div class="shop-bought">Куплено ×\${bought}</div>\`:''}
+      \`;
+    }
+    grid.appendChild(div);
+  });
+}
+
+function buyItem(id) {
+  const item=SHOP_ITEMS.find(x=>x.id===id);
+  if(!item) return;
+  if(item.minCompleted!==undefined && state.completed.length<item.minCompleted) return;
+  if(state.stars<item.cost) return;
+  state.stars-=item.cost;
+  state.purchases[id]=(state.purchases[id]||0)+1;
+  saveState();
+  updateHeader();
+  renderShop();
+}
+
+function scrollToActive() {
+  const el=document.getElementById('stage-'+state.current);
+  if(el) el.scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+function launchConfetti() {
+  const canvas=document.getElementById('confetti');
+  const ctx=canvas.getContext('2d');
+  canvas.width=window.innerWidth;
+  canvas.height=window.innerHeight;
+  const pieces=[];
+  const colors=['#ff5c8a','#f0c050','#6ee7a0','#ff9a5c','#a070ff','#5cc8ff'];
+  for(let i=0;i<80;i++) {
+    pieces.push({
+      x:Math.random()*canvas.width,
+      y:Math.random()*canvas.height-canvas.height,
+      w:Math.random()*8+4, h:Math.random()*6+3,
+      color:colors[Math.floor(Math.random()*colors.length)],
+      vy:Math.random()*3+2, vx:(Math.random()-0.5)*2,
+      rot:Math.random()*Math.PI*2, vr:(Math.random()-0.5)*0.1
+    });
+  }
+  let frame=0;
+  function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    pieces.forEach(p=>{
+      p.y+=p.vy; p.x+=p.vx; p.rot+=p.vr;
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot);
+      ctx.fillStyle=p.color;
+      ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+      ctx.restore();
+    });
+    frame++;
+    if(frame<150) requestAnimationFrame(draw);
+    else ctx.clearRect(0,0,canvas.width,canvas.height);
+  }
+  draw();
+}
+
+window.addEventListener('scroll',()=>{
+  const btn=document.getElementById('scrollBtn');
+  const active=document.getElementById('stage-'+state.current);
+  if(!active||document.getElementById('shopView').classList.contains('active')){btn.style.display='none';return;}
+  const rect=active.getBoundingClientRect();
+  btn.style.display=(rect.top<-100||rect.bottom>window.innerHeight+100)?'block':'none';
+});
+
+function resetProgress() {
+  if(confirm('Сбросить весь прогресс и начать квест заново?')){
+    state={current:0,completed:[],stars:0,quizAnswers:{},rebusGuessed:false,rebusRevealed:false,purchases:{}};
+    saveState();
+    renderStages();
+    showQuest();
+  }
+}
+
+let headerTaps=0;
+document.querySelector('.header h1').addEventListener('click',()=>{
+  headerTaps++;
+  if(headerTaps>=5){
+    resetProgress();
+    headerTaps=0;
+  }
+  setTimeout(()=>headerTaps=0,3000);
+});
+
+loadState();
+renderStages();
+setTimeout(scrollToActive,500);
+</script>
+</body>
+</html>`;
+
+fs.writeFileSync(path.join(__dirname, 'index.html'), html, 'utf8');
+console.log('Built index.html');
+console.log('File size:', (Buffer.byteLength(html) / 1024).toFixed(0), 'KB');
